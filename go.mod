@@ -5,6 +5,7 @@ go 1.25.5
 require (
 	entgo.io/ent v0.14.6
 	github.com/caarlos0/env/v11 v11.4.1
+	github.com/go-sql-driver/mysql v1.10.0
 	github.com/jhillyerd/enmime/v2 v2.3.0
 	github.com/labstack/echo/v5 v5.1.1
 	github.com/lib/pq v1.12.3
@@ -14,6 +15,7 @@ require (
 
 require (
 	ariga.io/atlas v1.2.0 // indirect
+	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect

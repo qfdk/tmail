@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 	"tmail/ent"
@@ -138,6 +139,38 @@ func FetchLatest(ctx context.Context, req ReqFetchLatest) (*server.Reply, error)
 	case <-ctx.Done():
 		return server.Handled(), nil
 	}
+}
+
+type ReqDelete struct {
+	ID int `param:"id"`
+}
+
+func DeleteEnvelope(ctx context.Context, req ReqDelete) error {
+	if req.ID <= 0 {
+		return server.BadParam()
+	}
+	db := DB(ctx)
+	atts, err := db.Attachment.Query().
+		Where(attachment.HasOwnerWith(envelope.ID(req.ID))).
+		All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, a := range atts {
+		_ = os.Remove(a.Filepath)
+	}
+	if _, err := db.Attachment.Delete().
+		Where(attachment.HasOwnerWith(envelope.ID(req.ID))).
+		Exec(ctx); err != nil {
+		return err
+	}
+	if err := db.Envelope.DeleteOneID(req.ID).Exec(ctx); err != nil {
+		if ent.IsNotFound(err) {
+			return server.ErrMsgf("envelope %d not found", req.ID)
+		}
+		return err
+	}
+	return nil
 }
 
 type ReqDownload struct {

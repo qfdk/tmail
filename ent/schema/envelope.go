@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -19,7 +20,11 @@ func (Envelope) Fields() []ent.Field {
 		field.String("to").NotEmpty(),
 		field.String("from").NotEmpty(),
 		field.String("subject").Default("no subject"),
-		field.String("content").Default("no content"),
+		field.String("content").
+			SchemaType(map[string]string{
+				dialect.MySQL:    "MEDIUMTEXT",
+				dialect.Postgres: "TEXT",
+			}),
 		field.Time("created_at").Default(time.Now),
 	}
 }

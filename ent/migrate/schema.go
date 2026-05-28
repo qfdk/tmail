@@ -36,7 +36,7 @@ var (
 		{Name: "to", Type: field.TypeString},
 		{Name: "from", Type: field.TypeString},
 		{Name: "subject", Type: field.TypeString, Default: "no subject"},
-		{Name: "content", Type: field.TypeString, Default: "no content"},
+		{Name: "content", Type: field.TypeString, SchemaType: map[string]string{"mysql": "MEDIUMTEXT", "postgres": "TEXT"}},
 		{Name: "created_at", Type: field.TypeTime},
 	}
 	// EnvelopesTable holds the schema information for the "envelopes" table.

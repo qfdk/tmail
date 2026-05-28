@@ -59,10 +59,6 @@ func init() {
 	envelopeDescSubject := envelopeFields[2].Descriptor()
 	// envelope.DefaultSubject holds the default value on creation for the subject field.
 	envelope.DefaultSubject = envelopeDescSubject.Default.(string)
-	// envelopeDescContent is the schema descriptor for content field.
-	envelopeDescContent := envelopeFields[3].Descriptor()
-	// envelope.DefaultContent holds the default value on creation for the content field.
-	envelope.DefaultContent = envelopeDescContent.Default.(string)
 	// envelopeDescCreatedAt is the schema descriptor for created_at field.
 	envelopeDescCreatedAt := envelopeFields[4].Descriptor()
 	// envelope.DefaultCreatedAt holds the default value on creation for the created_at field.

@@ -13,6 +13,7 @@ func Register(e *echo.Echo) {
 	g.GET("/fetch", server.Wrap(api.Fetch))
 	g.GET("/fetch/latest", server.WrapReply(api.FetchLatest))
 	g.GET("/fetch/:id", server.Wrap(api.FetchDetail))
+	g.DELETE("/fetch/:id", server.WrapReq(api.DeleteEnvelope))
 	g.GET("/download/:id", server.WrapReply(api.Download))
 	g.GET("/domain", server.WrapResp(api.DomainList))
 }

@@ -22,8 +22,9 @@ import {
   Frown,
   Loader,
   RotateCw,
+  Trash2,
 } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
 function Content({ lang }: { lang: string }) {
@@ -66,6 +67,18 @@ function Content({ lang }: { lang: string }) {
       .catch(fetchError)
       .finally(() => setLoading(false))
   }, [address])
+
+  async function onDelete(e: MouseEvent, id: number) {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      await apiFetch(`/api/fetch/${id}`, { method: "DELETE" })
+      setEnvelopes((list) => list.filter((env) => env.id !== id))
+      toast.success(t("deleted"))
+    } catch (err) {
+      fetchError(err)
+    }
+  }
 
   async function fetchAll() {
     const list = await apiFetch<Envelope[]>("/api/fetch?to=" + address, {
@@ -160,6 +173,12 @@ function Content({ lang }: { lang: string }) {
                 />
                 <div className="flex-1" />
                 {envelope.to != address && <span>{envelope.to}</span>}
+                <Trash2
+                  size={16}
+                  strokeWidth={1.8}
+                  className="text-muted-foreground hover:text-destructive invisible ml-2 shrink-0 group-hover:visible"
+                  onClick={(e) => onDelete(e, envelope.id)}
+                />
               </div>
               <div className="flex justify-between text-sm">
                 <div className="truncate">{fmtFrom(envelope.from)}</div>

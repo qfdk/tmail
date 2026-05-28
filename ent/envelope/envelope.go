@@ -64,8 +64,6 @@ var (
 	FromValidator func(string) error
 	// DefaultSubject holds the default value on creation for the "subject" field.
 	DefaultSubject string
-	// DefaultContent holds the default value on creation for the "content" field.
-	DefaultContent string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 )
