@@ -13,13 +13,7 @@ import {
 } from "@/lib/store/store.ts"
 import { apiFetch, fetchError, randomAddress } from "@/lib/utils.ts"
 import { useStore } from "@nanostores/react"
-import {
-  Copy,
-  GalleryVerticalEnd,
-  Mail,
-  PencilLine,
-  RefreshCw,
-} from "lucide-react"
+import { Copy, Mail, PencilLine, RefreshCw } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { toast } from "sonner"
 
@@ -51,15 +45,16 @@ function AddressBar({ lang }: { lang: string }) {
 
   return (
     <div className="flex items-center gap-2">
-      <Button
-        variant="secondary"
-        size="icon"
-        onClick={onCopy}
-        aria-label="copy address"
-        className="shrink-0"
-      >
-        <Mail size={18} />
-      </Button>
+      <History lang={lang}>
+        <Button
+          variant="secondary"
+          size="icon"
+          aria-label={t("history")}
+          className="shrink-0"
+        >
+          <Mail size={18} />
+        </Button>
+      </History>
       <div className="relative w-56 sm:w-72">
         <Mounted fallback={<Skeleton className="h-9 w-full" />}>
           <Input
@@ -97,16 +92,6 @@ function AddressBar({ lang }: { lang: string }) {
           <PencilLine size={16} />
         </Button>
       </EditAddress>
-      <History lang={lang}>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={t("history")}
-          className="text-muted-foreground hover:text-foreground rounded-full border"
-        >
-          <GalleryVerticalEnd size={16} />
-        </Button>
-      </History>
     </div>
   )
 }
