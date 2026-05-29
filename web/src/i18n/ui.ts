@@ -44,6 +44,7 @@ const ui = {
     faqContent: "It will come soon ( ͡° ͜ʖ ͡°)",
     noSubject: "(no subject)",
     backToList: "Back",
+    editPlaceholder: "Enter mailbox name",
   },
   zh: {
     pageTitle: "临时邮箱 - 匿名的一次性邮箱",
@@ -81,6 +82,7 @@ const ui = {
     faqContent: "等等就来 ( ͡° ͜ʖ ͡°)",
     noSubject: "（无主题）",
     backToList: "返回",
+    editPlaceholder: "输入邮箱账号",
   },
 }
 

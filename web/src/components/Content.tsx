@@ -143,7 +143,7 @@ function Content({ lang }: { lang: string }) {
       <section className="bg-card flex items-center gap-4 rounded-md border px-5 py-4 shadow-2xs">
         <div className="relative shrink-0">
           <CheckCircle2 className="text-green-500" size={40} strokeWidth={1.6} />
-          <span className="absolute inset-0 animate-ping rounded-full bg-green-500/30" />
+          <span className="absolute inset-0 animate-ping rounded-full bg-green-500/30 [animation-duration:3s]" />
         </div>
         <div className="flex flex-col">
           <span className="text-base font-semibold">{t("serviceRunning")}</span>
