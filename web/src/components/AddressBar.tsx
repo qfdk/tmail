@@ -14,6 +14,7 @@ import {
 import { apiFetch, fetchError, randomAddress } from "@/lib/utils.ts"
 import { useStore } from "@nanostores/react"
 import {
+  Copy,
   GalleryVerticalEnd,
   Mail,
   PencilLine,
@@ -64,17 +65,26 @@ function AddressBar({ lang }: { lang: string }) {
           <Input
             readOnly
             value={address ?? ""}
-            className="bg-background pr-9 font-mono"
-            onClick={onCopy}
+            className="bg-background pr-16 font-mono"
           />
-          <button
-            type="button"
-            onClick={onRandom}
-            aria-label="random address"
-            className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-full p-1 transition-colors"
-          >
-            <RefreshCw size={16} />
-          </button>
+          <div className="absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center gap-0.5">
+            <button
+              type="button"
+              onClick={onCopy}
+              aria-label="copy address"
+              className="text-muted-foreground hover:text-foreground rounded-full p-1 transition-colors"
+            >
+              <Copy size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={onRandom}
+              aria-label={t("random")}
+              className="text-muted-foreground hover:text-foreground rounded-full p-1 transition-colors"
+            >
+              <RefreshCw size={16} />
+            </button>
+          </div>
         </Mounted>
       </div>
       <EditAddress lang={lang}>
