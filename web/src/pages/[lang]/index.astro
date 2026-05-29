@@ -1,5 +1,4 @@
 ---
-import Actions from "@/components/Actions"
 import Content from "@/components/Content"
 import Header from "@/components/Header.astro"
 import { languages } from "@/i18n/ui"
@@ -18,10 +17,7 @@ const { lang } = Astro.params
 
 <Layout lang={lang}>
   <Header lang={lang} />
-  <div class="mx-auto flex min-h-0 w-11/12 max-w-4xl flex-1 gap-4">
-    <div class="hidden sm:block">
-      <Actions lang={lang} client:load />
-    </div>
+  <main class="mx-auto mt-6 w-[92%] max-w-6xl flex-1">
     <Content lang={lang} client:load />
-  </div>
+  </main>
 </Layout>

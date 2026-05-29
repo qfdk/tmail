@@ -1,11 +1,16 @@
-import Actions from "@/components/Actions.tsx"
-import Detail from "@/components/Detail.tsx"
-import Mounted from "@/components/Mounted.tsx"
-import { Skeleton } from "@/components/ui/skeleton.tsx"
+import DeleteEnvelope from "@/components/DeleteEnvelope.tsx"
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog.tsx"
+import { Button } from "@/components/ui/button.tsx"
 import { type language, useTranslations } from "@/i18n/ui.ts"
 import { ABORT_SAFE } from "@/lib/constant.ts"
-import { $address, initStore } from "@/lib/store/store.ts"
-import type { Envelope } from "@/lib/types.ts"
+import { $address } from "@/lib/store/store.ts"
+import type { Attachment, Envelope } from "@/lib/types.ts"
 import {
   apiFetch,
   fetchError,
@@ -17,68 +22,73 @@ import {
 import { useStore } from "@nanostores/react"
 import { clsx } from "clsx"
 import {
-  ClipboardCopy,
-  ExternalLink,
-  Frown,
-  Loader,
+  ArrowLeft,
+  CheckCircle2,
+  Code2,
+  Download,
+  Paperclip,
   RotateCw,
   Trash2,
 } from "lucide-react"
-import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
+
+type MailDetail = {
+  content: string
+  attachments: Attachment[]
+}
 
 function Content({ lang }: { lang: string }) {
   const [latestId, setLatestId] = useState(-1)
   const [loading, setLoading] = useState(true)
   const [envelopes, setEnvelopes] = useState<Envelope[]>([])
+  const [selected, setSelected] = useState<Envelope | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [rawOpen, setRawOpen] = useState(false)
+  const [rawData, setRawData] = useState<MailDetail | null>(null)
+
   const controller = useRef<AbortController>(null)
+  const detailController = useRef<AbortController>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const shadowRef = useRef<ShadowRoot | null>(null)
 
   const address = useStore($address)
-
   const t = useMemo(() => useTranslations(lang as language), [])
 
   useEffect(() => {
-    apiFetch<string[]>("/api/domain")
-      .then((domainList) => initStore(domainList))
-      .catch(fetchError)
-
-    return () => controller.current?.abort(ABORT_SAFE)
+    return () => {
+      controller.current?.abort(ABORT_SAFE)
+      detailController.current?.abort(ABORT_SAFE)
+    }
   }, [])
 
   useEffect(() => {
-    if (latestId < 0) {
-      return
-    }
-
+    if (latestId < 0) return
     fetchLatest().catch(fetchError)
   }, [latestId])
 
   useEffect(() => {
-    if (!address) {
-      return
-    }
+    if (!selected || !rawData) return
+    const host = contentRef.current
+    if (!host) return
+    const shadow = host.shadowRoot ?? host.attachShadow({ mode: "open" })
+    shadow.innerHTML = rawData.content
+    shadowRef.current = shadow
+  }, [selected, rawData])
+
+  useEffect(() => {
+    if (!address) return
     controller.current?.abort(ABORT_SAFE)
     controller.current = new AbortController()
-
     setLoading(true)
     setEnvelopes([])
+    setSelected(null)
     setLatestId(-1)
     fetchAll()
       .catch(fetchError)
       .finally(() => setLoading(false))
   }, [address])
-
-  async function onDelete(e: MouseEvent, id: number) {
-    e.preventDefault()
-    e.stopPropagation()
-    try {
-      await apiFetch(`/api/fetch/${id}`, { method: "DELETE" })
-      setEnvelopes((list) => list.filter((env) => env.id !== id))
-      toast.success(t("deleted"))
-    } catch (err) {
-      fetchError(err)
-    }
-  }
 
   async function fetchAll() {
     const list = await apiFetch<Envelope[]>("/api/fetch?to=" + address, {
@@ -108,87 +118,212 @@ function Content({ lang }: { lang: string }) {
     toast.success(fmtString(t("receiveNew"), e.from))
   }
 
-  function copyToClipboard() {
-    navigator.clipboard
-      .writeText(address)
-      .then(() => toast.success(t("copy") + " " + address))
-      .catch((e) => toast.error(e.message ?? e))
+  function onSelect(envelope: Envelope) {
+    setSelected(envelope)
+    setAttachments([])
+    setRawData(null)
+    detailController.current?.abort(ABORT_SAFE)
+    detailController.current = new AbortController()
+    setDetailLoading(true)
+    apiFetch<MailDetail>("/api/fetch/" + envelope.id, {
+      signal: detailController.current.signal,
+    })
+      .then((res) => {
+        setAttachments(res.attachments)
+        setRawData(res)
+      })
+      .catch(fetchError)
+      .finally(() => setDetailLoading(false))
+  }
+
+  function onDownload(id: string) {
+    window.open(`/api/download/${id}`, "_blank")
+  }
+
+  function onEnvelopeDeleted(id: number) {
+    setEnvelopes((list) => list.filter((env) => env.id !== id))
+    if (selected?.id === id) {
+      setSelected(null)
+      if (shadowRef.current) shadowRef.current.innerHTML = ""
+    }
   }
 
   return (
-    <div className="flex w-full flex-col pb-4">
-      <div className="block sm:hidden">
-        <Actions lang={lang} />
-      </div>
-      <div className="relative border-x">
-        <div className="animate-fill absolute h-1 bg-green-400" />
-        <div className="flex flex-wrap items-center">
-          <div className="bg-sidebar flex h-12 items-center border-r px-4">
-            <Mounted fallback={<Skeleton className="h-6 w-48" />}>
-              <span className="font-mono font-semibold">{address}</span>
-            </Mounted>
-          </div>
-          <div
-            onClick={copyToClipboard}
-            className="hover:bg-sidebar flex items-center self-stretch transition-colors hover:cursor-pointer hover:border-r"
-          >
-            <ClipboardCopy className="mx-2" size={20} strokeWidth={1.8} />
-          </div>
-          <div className="flex-1" />
-          <div className="text-muted-foreground hidden font-medium sm:inline">
-            {t("realTime")}
-          </div>
-          <Loader size={20} strokeWidth={1.8} className="mx-2 animate-spin" />
+    <div className="flex w-full flex-col gap-4 pb-6">
+      <section className="bg-card flex items-center gap-4 rounded-md border px-5 py-4 shadow-2xs">
+        <div className="relative shrink-0">
+          <CheckCircle2 className="text-green-500" size={40} strokeWidth={1.6} />
+          <span className="absolute inset-0 animate-ping rounded-full bg-green-500/30" />
         </div>
-      </div>
-      <div className="min-h-0 divide-y overflow-y-auto rounded-b-sm border">
-        {envelopes.length === 0 && (
-          <div className="text-muted-foreground flex items-center justify-center gap-1 py-5.5">
+        <div className="flex flex-col">
+          <span className="text-base font-semibold">{t("serviceRunning")}</span>
+          <span className="text-muted-foreground text-sm">
+            {t("serviceDesc")}
+          </span>
+        </div>
+      </section>
+
+      {envelopes.length > 0 && (
+        <section className="bg-card overflow-hidden rounded-md border shadow-2xs">
+          <table className="w-full table-fixed">
+            <thead className="bg-sidebar text-muted-foreground border-b text-sm">
+              <tr>
+                <th className="w-1/3 px-4 py-3 text-left font-semibold">
+                  {t("colFrom")}
+                </th>
+                <th className="px-4 py-3 text-left font-semibold">
+                  {t("colSubject")}
+                </th>
+                <th className="w-44 px-4 py-3 text-right font-semibold whitespace-nowrap">
+                  {t("colTime")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {envelopes.map((envelope) => (
+                <tr
+                  key={envelope.id}
+                  onClick={() => onSelect(envelope)}
+                  className={clsx(
+                    "hover:bg-secondary group cursor-pointer transition-colors",
+                    selected?.id === envelope.id && "bg-secondary",
+                    envelope.animate && "animate-in slide-in-from-right"
+                  )}
+                >
+                  <td className="truncate px-4 py-3 text-sm">
+                    {fmtFrom(envelope.from)}
+                  </td>
+                  <td className="truncate px-4 py-3">
+                    <span className="text-foreground">{envelope.subject}</span>
+                  </td>
+                  <td className="text-muted-foreground px-4 py-3 text-right text-sm whitespace-nowrap">
+                    {fmtDate(envelope.created_at)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {(selected || envelopes.length === 0) && (
+      <section className="bg-card rounded-md border shadow-2xs">
+        <div className="flex items-center justify-between gap-2 border-b px-5 py-3">
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate font-semibold">
+              {selected ? selected.subject || t("noSubject") : t("faqTitle")}
+            </span>
+            {selected && (
+              <span className="text-muted-foreground flex flex-wrap gap-x-3 text-xs">
+                <span className="truncate">{selected.from}</span>
+                <span className="shrink-0">{fmtDate(selected.created_at)}</span>
+              </span>
+            )}
+          </div>
+          {selected && (
+            <div className="flex shrink-0 items-center gap-1">
+              {rawData && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setRawOpen(true)}
+                  aria-label="raw"
+                >
+                  <Code2 size={18} />
+                </Button>
+              )}
+              <DeleteEnvelope
+                id={selected.id}
+                lang={lang}
+                onDeleted={onEnvelopeDeleted}
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label={t("deleteTitle")}
+                >
+                  <Trash2 size={18} />
+                </Button>
+              </DeleteEnvelope>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setSelected(null)
+                  if (shadowRef.current) shadowRef.current.innerHTML = ""
+                }}
+                aria-label={t("backToList")}
+              >
+                <ArrowLeft size={18} />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {!selected && (
+          <div className="text-muted-foreground flex items-center gap-2 px-5 py-4">
             {loading ? (
               <>
-                <RotateCw className="animate-spin" size={20} />
+                <RotateCw className="animate-spin" size={16} />
                 <span>{t("listLoading")}</span>
               </>
             ) : (
-              <>
-                <Frown size={20} />
-                <span>{t("listEmpty")}</span>
-              </>
+              <span>{t("faqContent")}</span>
             )}
           </div>
         )}
-        {envelopes.map((envelope) => (
-          <Detail lang={lang} key={envelope.id} envelope={envelope}>
-            <div
-              className={clsx(
-                "hover:bg-secondary group text-muted-foreground space-y-1 px-4 py-2 transition-colors duration-300 hover:cursor-pointer",
-                envelope.animate && "animate-in slide-in-from-right"
-              )}
-            >
-              <div className="flex items-center">
-                <span className="text-foreground">{envelope.subject}</span>
-                <ExternalLink
-                  size={16}
-                  className="invisible mx-2 hidden group-hover:visible sm:block"
-                />
-                <div className="flex-1" />
-                {envelope.to != address && <span>{envelope.to}</span>}
-                <Trash2
-                  size={16}
-                  strokeWidth={1.8}
-                  className="text-muted-foreground hover:text-destructive invisible ml-2 shrink-0 group-hover:visible"
-                  onClick={(e) => onDelete(e, envelope.id)}
-                />
+
+        {selected && (
+          <div className="px-5 py-4">
+            {attachments.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-1">
+                {attachments.map((a) => (
+                  <div
+                    key={a.id}
+                    onClick={() => onDownload(a.id)}
+                    className="bg-secondary text-muted-foreground hover:text-foreground group flex items-center gap-1 rounded-sm border px-1.5 py-1 text-sm hover:cursor-pointer hover:shadow-xs"
+                  >
+                    <Download
+                      className="animate-in fade-in hidden duration-500 group-hover:block"
+                      size={16}
+                    />
+                    <Paperclip className="group-hover:hidden" size={16} />
+                    {a.filename}
+                  </div>
+                ))}
               </div>
-              <div className="flex justify-between text-sm">
-                <div className="truncate">{fmtFrom(envelope.from)}</div>
-                <div className="shrink-0">{fmtDate(envelope.created_at)}</div>
+            )}
+            {detailLoading && (
+              <div className="text-muted-foreground flex items-center gap-2">
+                <RotateCw className="animate-spin" size={16} />
+                <span>{t("mailLoading")}</span>
               </div>
-            </div>
-          </Detail>
-        ))}
-      </div>
-      <div className="flex-1" />
+            )}
+            <div ref={contentRef} />
+          </div>
+        )}
+      </section>
+      )}
+
+      <AlertDialog open={rawOpen} onOpenChange={setRawOpen}>
+        <AlertDialogContent className="flex max-h-11/12 flex-col sm:max-w-4xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>RAW</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selected?.subject}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <pre className="flex-1 overflow-auto rounded-md border bg-secondary p-3 text-xs">
+            <code>{rawData ? JSON.stringify(rawData, null, 2) : ""}</code>
+          </pre>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setRawOpen(false)}>
+              {t("cancel")}
+            </Button>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

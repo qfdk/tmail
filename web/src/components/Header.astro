@@ -1,6 +1,6 @@
 ---
+import AddressBar from "@/components/AddressBar.tsx"
 import { useTranslations, type language } from "@/i18n/ui"
-import ToGithub from "@/components/ToGithub"
 import ThemeIcon from "./ThemeIcon.astro"
 
 const { lang } = Astro.props
@@ -8,11 +8,13 @@ const t = useTranslations(lang as language)
 ---
 
 <header class="bg-sidebar border-b py-3 shadow-2xs">
-  <div class="mx-auto flex w-[90%] max-w-4xl items-center px-2.5 sm:px-4.5">
-    <img alt="logo" src="/favicon.svg" class="h-6" />
-    <span class="mx-1 font-semibold">{t("title")}</span>
+  <div
+    class="mx-auto flex w-[92%] max-w-6xl flex-wrap items-center gap-3 px-2.5 sm:px-4.5"
+  >
+    <img alt="logo" src="/favicon.svg" class="h-7" />
+    <span class="text-lg font-semibold">{t("title")}</span>
     <div class="flex-1"></div>
+    <AddressBar lang={lang} client:load />
     <ThemeIcon />
-    <ToGithub client:load />
   </div>
 </header>
