@@ -17,7 +17,6 @@ import {
   fmtDate,
   fmtFrom,
   fmtString,
-  unwrapApi,
 } from "@/lib/utils.ts"
 import { useStore } from "@nanostores/react"
 import { clsx } from "clsx"
@@ -39,7 +38,6 @@ type MailDetail = {
 }
 
 function Content({ lang }: { lang: string }) {
-  const [latestId, setLatestId] = useState(-1)
   const [loading, setLoading] = useState(true)
   const [envelopes, setEnvelopes] = useState<Envelope[]>([])
   const [selected, setSelected] = useState<Envelope | null>(null)
@@ -50,6 +48,7 @@ function Content({ lang }: { lang: string }) {
 
   const controller = useRef<AbortController>(null)
   const detailController = useRef<AbortController>(null)
+  const eventSource = useRef<EventSource | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const shadowRef = useRef<ShadowRoot | null>(null)
 
@@ -60,13 +59,9 @@ function Content({ lang }: { lang: string }) {
     return () => {
       controller.current?.abort(ABORT_SAFE)
       detailController.current?.abort(ABORT_SAFE)
+      eventSource.current?.close()
     }
   }, [])
-
-  useEffect(() => {
-    if (latestId < 0) return
-    fetchLatest().catch(fetchError)
-  }, [latestId])
 
   useEffect(() => {
     if (!selected || !rawData) return
@@ -81,42 +76,37 @@ function Content({ lang }: { lang: string }) {
     if (!address) return
     controller.current?.abort(ABORT_SAFE)
     controller.current = new AbortController()
+    eventSource.current?.close()
     setLoading(true)
     setEnvelopes([])
     setSelected(null)
-    setLatestId(-1)
-    fetchAll()
+
+    apiFetch<Envelope[]>("/api/fetch?to=" + address, {
+      signal: controller.current.signal,
+    })
+      .then((list) => setEnvelopes(list))
       .catch(fetchError)
       .finally(() => setLoading(false))
+
+    const es = new EventSource(`/api/stream?to=${encodeURIComponent(address)}`)
+    es.addEventListener("mail", (ev) => {
+      try {
+        const e = JSON.parse((ev as MessageEvent).data) as Envelope
+        e.animate = true
+        setEnvelopes((list) =>
+          list.some((x) => x.id === e.id) ? list : [e, ...list]
+        )
+        toast.success(fmtString(t("receiveNew"), e.from))
+      } catch (err) {
+        fetchError(err)
+      }
+    })
+    eventSource.current = es
+
+    return () => {
+      es.close()
+    }
   }, [address])
-
-  async function fetchAll() {
-    const list = await apiFetch<Envelope[]>("/api/fetch?to=" + address, {
-      signal: controller.current!.signal,
-    })
-    setEnvelopes(list)
-    setLatestId(list.length > 0 ? list[0].id : 0)
-  }
-
-  async function fetchLatest() {
-    const res = await fetch(`/api/fetch/latest?to=${address}&id=${latestId}`, {
-      signal: controller.current!.signal,
-    })
-    if (!res.ok) {
-      setTimeout(() => fetchLatest().catch(fetchError), 1000)
-      await unwrapApi<Envelope>(res)
-      return
-    }
-    if (res.status === 204) {
-      setTimeout(() => fetchLatest().catch(fetchError))
-      return
-    }
-    const e = await unwrapApi<Envelope>(res)
-    e.animate = true
-    setEnvelopes([e, ...envelopes])
-    setLatestId(e.id)
-    toast.success(fmtString(t("receiveNew"), e.from))
-  }
 
   function onSelect(envelope: Envelope) {
     setSelected(envelope)
