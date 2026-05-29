@@ -55,7 +55,7 @@ function AddressBar({ lang }: { lang: string }) {
           <Mail size={18} />
         </Button>
       </History>
-      <div className="relative w-56 sm:w-72">
+      <div className="relative flex-1 sm:w-72 sm:flex-none">
         <Mounted fallback={<Skeleton className="h-9 w-full" />}>
           <Input
             readOnly

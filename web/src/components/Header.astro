@@ -13,8 +13,11 @@ const t = useTranslations(lang as language)
   >
     <img alt="logo" src="/favicon.svg" class="h-7" />
     <span class="text-lg font-semibold">{t("title")}</span>
-    <div class="flex-1"></div>
-    <AddressBar lang={lang} client:load />
-    <ThemeIcon />
+    <div class="ml-auto sm:order-3 sm:ml-0">
+      <ThemeIcon />
+    </div>
+    <div class="w-full sm:order-2 sm:ml-auto sm:w-auto">
+      <AddressBar lang={lang} client:load />
+    </div>
   </div>
 </header>
